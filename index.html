@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>相続税・贈与税 簡易計算ツール</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f0f0f0;
+      padding: 5vw;
+      font-size: 3.5vw;
+    }
+    @media (min-width: 600px) {
+      body {
+        font-size: 1rem;
+        padding: 20px;
+      }
+    }
+    .container {
+      max-width: 700px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    label, select, input {
+      display: block;
+      margin-bottom: 15px;
+      width: 100%;
+      font-size: 1rem;
+    }
+    .result {
+      margin-top: 20px;
+      font-weight: bold;
+      font-size: 1.2rem;
+    }
+    .section {
+      margin-top: 40px;
+      border-top: 1px solid #ddd;
+      padding: 20px;
+      border-radius: 10px;
+    }
+    .inheritance-section {
+      background-color: #e3f2fd;
+    }
+    .gift-section {
+      background-color: #fce4ec;
+    }
+    h3 {
+      margin-top: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>相続税・贈与税 簡易計算ツール</h2>
+
+    <!-- 相続税エリア -->
+    <div class="section inheritance-section">
+      <h3>📘 相続税 計算</h3>
+
+      <label for="estateSelect">遺産総額（万円）:</label>
+      <select id="estateSelect">
+        <option value="">プルダウンで選択</option>
+        <option value="5000">5,000 万円</option>
+        <option value="10000">1 億円</option>
+        <option value="15000">1 億5,000 万円</option>
+        <option value="20000">2 億円</option>
+        <option value="30000">3 億円</option>
+      </select>
+
+      <input type="number" id="estateInput" placeholder="または金額を直接入力（万円）">
+
+      <label for="heirs">法定相続人の人数:</label>
+      <input type="number" id="heirs" placeholder="例：2">
+
+      <label for="hasSpouse">配偶者はいますか？</label>
+      <select id="hasSpouse">
+        <option value="yes">いる</option>
+        <option value="no">いない</option>
+      </select>
+
+      <label for="heirType">相続人の構成:</label>
+      <select id="heirType">
+        <option value="child">子どもがいる</option>
+        <option value="parent">子どもはいないが、親がいる</option>
+        <option value="sibling">子も親もいない → 兄弟姉妹が相続人</option>
+      </select>
+
+      <div class="result" id="inheritanceResult"></div>
+    </div>
+
+    <!-- 贈与税エリア -->
+    <div class="section gift-section">
+      <h3>🎁 贈与税 計算</h3>
+
+      <label for="giftAmountSelect">贈与金額（万円）:</label>
+      <select id="giftAmountSelect">
+        <option value="">プルダウンで選択</option>
+        <option value="100">100 万円</option>
+        <option value="200">200 万円</option>
+        <option value="500">500 万円</option>
+        <option value="1000">1,000 万円</option>
+        <option value="2000">2,000 万円</option>
+        <option value="3000">3,000 万円</option>
+      </select>
+
+      <input type="number" id="giftAmountInput" placeholder="または金額を直接入力（万円）">
+
+      <label for="giftCategory">贈与対象者:</label>
+      <select id="giftCategory">
+        <option value="tokutei">18歳以上の子・孫・ひ孫（特定贈与）</option>
+        <option value="ippan">上記以外（一般贈与）</option>
+      </select>
+
+      <div class="result" id="giftResult"></div>
+    </div>
+  </div>
+
+<script>
+  // 相続税計算
+  const estateSelect = document.getElementById('estateSelect');
+  const estateInput = document.getElementById('estateInput');
+  const heirsInput = document.getElementById('heirs');
+  const hasSpouseSelect = document.getElementById('hasSpouse');
+  const heirTypeSelect = document.getElementById('heirType');
+  const inheritanceResultDiv = document.getElementById('inheritanceResult');
+
+  function calculateInheritanceTax() {
+    const estate = parseFloat(estateInput.value || estateSelect.value);
+    const heirs = parseInt(heirsInput.value);
+    const hasSpouse = hasSpouseSelect.value === 'yes';
+    const heirType = heirTypeSelect.value;
+
+    if (isNaN(estate) || estate <= 0 || isNaN(heirs) || heirs <= 0) {
+      inheritanceResultDiv.textContent = '遺産総額と法定相続人数を正しく入力してください。';
+      return;
+    }
+
+    const basicExemption = 3000 + 600 * heirs;
+    const taxableEstate = estate - basicExemption;
+
+    if (taxableEstate <= 0) {
+      inheritanceResultDiv.textContent = `課税対象外です（基礎控除：${basicExemption}万円）。`;
+      return;
+    }
+
+    let taxRate = 0.1;
+    let deduction = 0;
+    if (taxableEstate <= 1000) {
+      taxRate = 0.1; deduction = 0;
+    } else if (taxableEstate <= 3000) {
+      taxRate = 0.15; deduction = 50;
+    } else if (taxableEstate <= 5000) {
+      taxRate = 0.2; deduction = 200;
+    } else {
+      taxRate = 0.3; deduction = 400;
+    }
+
+    let tax = Math.floor(taxableEstate * taxRate - deduction);
+    if (hasSpouse) tax = Math.floor(tax * 0.5);
+    if (heirType === 'sibling') tax = Math.floor(tax * 1.2);
+
+    inheritanceResultDiv.textContent = `概算相続税額：${tax}万円（基礎控除：${basicExemption}万円）`;
+  }
+
+  estateSelect.addEventListener('change', () => {
+    estateInput.value = '';
+    calculateInheritanceTax();
+  });
+  estateInput.addEventListener('input', () => {
+    estateSelect.value = '';
+    calculateInheritanceTax();
+  });
+  heirsInput.addEventListener('input', calculateInheritanceTax);
+  hasSpouseSelect.addEventListener('change', calculateInheritanceTax);
+  heirTypeSelect.addEventListener('change', calculateInheritanceTax);
+
+  // 贈与税計算
+  const giftAmountSelect = document.getElementById('giftAmountSelect');
+  const giftAmountInput = document.getElementById('giftAmountInput');
+  const giftCategorySelect = document.getElementById('giftCategory');
+  const giftResultDiv = document.getElementById('giftResult');
+
+  function calculateGiftTax() {
+    const amount = parseFloat(giftAmountInput.value || giftAmountSelect.value);
+    const category = giftCategorySelect.value;
+
+    if (isNaN(amount) || amount <= 0) {
+      giftResultDiv.textContent = "金額を正しく入力してください。";
+      return;
+    }
+
+    const exemption = 110;
+    const taxable = amount - exemption;
+
+    if (taxable <= 0) {
+      giftResultDiv.textContent = "課税対象外です（110万円以下）。";
+      return;
+    }
+
+    let taxRate = 0.1;
+    let deduction = 0;
+
+    if (taxable <= 200) {
+      taxRate = 0.1; deduction = 0;
+    } else if (taxable <= 400) {
+      taxRate = 0.15; deduction = 10;
+    } else if (taxable <= 600) {
+      taxRate = 0.2; deduction = 30;
+    } else {
+      taxRate = 0.3; deduction = 65;
+    }
+
+    if (category === "tokutei") {
+      deduction -= 5;
+    }
+
+    const tax = Math.floor(taxable * taxRate - deduction);
+    giftResultDiv.textContent = `概算贈与税額：${tax}万円`;
+  }
+
+  giftAmountSelect.addEventListener('change', () => {
+    giftAmountInput.value = '';
+    calculateGiftTax();
+  });
+  giftAmountInput.addEventListener('input', () => {
+    giftAmountSelect.value = '';
+    calculateGiftTax();
+  });
+  giftCategorySelect.addEventListener('change', calculateGiftTax);
+</script>
+</body>
+</html>
